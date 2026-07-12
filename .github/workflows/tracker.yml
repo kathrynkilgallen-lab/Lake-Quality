@@ -3,9 +3,11 @@ name: Update Lake James Legislation Tracker
 on:
   schedule:
     # Runs every Sunday at 13:00 UTC (8:00 AM EST)
-    - cron: '0 19 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch: # Allows you to manually trigger the script anytime via the GitHub UI
-
+permissions:
+  contents: write
+  
 jobs:
   run-tracker:
     runs-on: ubuntu-latest
