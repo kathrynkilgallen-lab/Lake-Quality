@@ -10,7 +10,7 @@ OUTPUT_FILE = "lake_james_legislation.csv"
 # Keywords that indicate impact on Lake James, its counties, or its watershed
 KEYWORDS = [
   "water quality", "discharge permit", "sedimentation", "siltation", "riparian buffer"
-"wetlands", "isolated wetlands", "interbasin transfer", "stormwater"]
+"wetlands", "isolated wetlands", "interbasin transfer", "stormwater", "PFAS", "Lake James"]
 
 
 def fetch_bill_list(api_key, state):
