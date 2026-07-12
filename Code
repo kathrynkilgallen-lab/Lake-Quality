@@ -1,0 +1,114 @@
+import csv
+import requests
+import os 
+
+# --- CONFIGURATION ---
+API_KEY = os.getenv("LEGISCAN_API_KEY")
+STATE = "nc"  # North Carolina
+OUTPUT_FILE = "lake_james_legislation.csv"
+
+# Keywords that indicate impact on Lake James, its counties, or its watershed
+KEYWORDS = [
+  "water quality", "discharge permit", "sedimentation", "siltation", "riparian buffer"
+"wetlands", "isolated wetlands", "interbasin transfer", "stormwater"]
+
+
+def fetch_bill_list(api_key, state):
+    """Fetches a list of all bills for the current session in the specified state."""
+    url = f"https://api.legiscan.com/?key={api_key}&op=getMasterList&state={state}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data.get("status") == "OK":
+            # LegiScan masterlist returns index 0 as session info, rest are bills
+            master_list = data.get("masterlist", {})
+            bills = [
+                val for key, val in master_list.items() if key != "session"
+            ]
+            return bills
+    print("Error fetching master list from LegiScan.")
+    return []
+
+
+def fetch_bill_details(api_key, bill_id):
+    """Fetches the detailed summary and history for a specific bill."""
+    url = f"https://api.legiscan.com/?key={api_key}&op=getBill&id={bill_id}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data.get("status") == "OK":
+            return data.get("bill", {})
+    return {}
+
+
+def scan_for_keywords(bill_data, keywords):
+    """Scans the title, description, and history for Lake James keywords."""
+    title = bill_data.get("title", "").lower()
+    description = bill_data.get("description", "").lower()
+
+    # Check if any keyword hits
+    for kw in keywords:
+        if kw in title or kw in description:
+            return True, kw  # Returns true and the keyword that triggered it
+
+    return False, None
+
+
+def main():
+    print(f"Starting scan for {STATE} legislation impacting Lake James...")
+    all_bills = fetch_bill_list(API_KEY, STATE)
+    print(f"Found {len(all_bills)} total bills in the current session.")
+
+    matches = []
+
+    # Iterate through bills and check details (API friendly, but note free tier limits)
+    # For a broad free tier, checking titles/descriptions from the MasterList first is safest
+    for b in all_bills:
+        # Check masterlist fields first to save API calls
+        title_desc = (b.get("title", "") + " " + b.get("description", "")).lower()
+
+        matched = False
+        trigger_keyword = ""
+
+        for kw in KEYWORDS:
+            if kw in title_desc:
+                matched = True
+                trigger_keyword = kw
+                break
+
+        if matched:
+            print(f"Match found: {b['number']} - {b['title'][:50]}...")
+
+            # Fetch deeper details for the final CSV (sponsors, status date)
+            details = fetch_bill_details(API_KEY, b["bill_id"])
+
+            # Extract sponsors string
+            sponsors = ", ".join(
+                [s.get("name", "") for s in details.get("sponsors", [])]
+            )
+
+            matches.append(
+                {
+                    "Bill_ID": b.get("number"),
+                    "Title": b.get("title"),
+                    "Current_Status": b.get("status_desc"),
+                    "Last_Action_Date": b.get("last_action_date"),
+                    "Trigger_Keyword": trigger_keyword,
+                    "Sponsors": sponsors,
+                    "Source_URL": b.get("url"),
+                }
+            )
+
+    # Write matches to CSV
+    if matches:
+        with open(OUTPUT_FILE, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=matches[0].keys())
+            writer.writeheader()
+            writer.writerows(matches)
+        print(f"Success! {len(matches)} relevant bills saved to {OUTPUT_FILE}")
+    else:
+        print("Scan complete. No matching bills found targeting those keywords.")
+
+
+if __name__ == "__main__":
+    main()
