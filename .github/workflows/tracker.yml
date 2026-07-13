@@ -30,7 +30,7 @@ jobs:
       - name: Run tracking script
         env:
           LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
-        run: python Code/tracker.yml
+        run: python Script
 
       - name: Commit and push updated CSV
         run: |
