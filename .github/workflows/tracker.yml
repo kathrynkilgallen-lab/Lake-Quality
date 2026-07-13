@@ -29,16 +29,15 @@ jobs:
     - name: Run tracking script
       env:
         LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
-      run: python Code
+      run: python Code/tracker.py
 
     - name: Commit and push updated CSV
       run: |
-        git config --global user.name "kathrynkilgallen"
-        git config --global user.email "kathryn.kilgallen@gmail.com"
-        git add lake_james_legislation.csv
-        git commit -m "Automated Daily Update: Lake James Legislation" || echo "No changes to commit"
-        git push
-        git add .github/workflows/tracker.yml
-        git commit -m "Add automation workflow"
-        git push origin main
+        - name: Commit and push updated CSV
+  run: |
+    git config --global user.name "kathrynkilgallen"
+    git config --global user.email "kathryn.kilgallen@gmail.com"
+    git add lake_james_legislation.csv
+    git commit -m "Automated Daily Update: Lake James Legislation" || echo "No changes to commit"
+    git push origin main
 
